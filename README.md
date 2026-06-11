@@ -1,21 +1,39 @@
-# TanStack Start + shadcn/ui
+# Base UI Combobox popup frozen during slow SPA navigation
 
-This is a template for a new TanStack Start project with React, TypeScript, and shadcn/ui.
+Selecting a Combobox item that triggers a slow route navigation leaves the popup
+**stuck open on screen for the entire load**, instead of closing.
 
-## Adding components
+## Versions
 
-To add components to your app, run the following command:
+`@base-ui/react@1.5.0` · `@tanstack/react-start@1.168` (SPA mode) · `react@19.2`
+
+## Reproduce
 
 ```bash
-npx shadcn@latest add button
+bun install && bun dev   # http://localhost:3000
 ```
 
-This will place the ui components in the `components` directory.
+1. Open the combobox, select any fruit.
+2. The destination route has a 5s blocking loader.
+3. The popup stays frozen open for those 5s, overlapping the `Loading…` screen.
 
-## Using components
+Expected: the popup closes/unmounts immediately on selection.
 
-To use the components in your app, import them as follows:
+## Why
 
-```tsx
-import { Button } from "@/components/ui/button";
-```
+On select, the popup is closed (`open=false`) but Base UI keeps it mounted in a
+portal until its close animation finishes — the unmount runs through
+`flushSync(setMounted(false))` (`useAnimationsFinished` → `useOpenChangeComplete`).
+`navigate()` wraps the transition in `startTransition`, and the blocking loader
+keeps it **suspended**. In SPA mode the whole pending boundary is client-side, so
+the source route (and its portal) stays in the suspended tree and the `flushSync`
+unmount can't commit until the loader resolves.
+
+Only reproduces in **SPA mode** (`tanstackStart({ spa: { enabled: true } })`) —
+SSR resolves the navigation server-side and the popup unmounts normally.
+
+## Key files
+
+- `src/routes/index.tsx` — combobox; items navigate on select
+- `src/routes/fruit.$fruitId.tsx` — 5s blocking loader
+- `vite.config.ts` — `spa.enabled: true`
