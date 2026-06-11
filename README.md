@@ -1,41 +1,51 @@
-# Base UI Combobox popup frozen during slow SPA navigation
+# Base UI Combobox popup frozen when a fallback replaces the selecting tree
 
-Selecting a Combobox item that triggers a slow route navigation leaves the popup
-**stuck open on screen for the entire load**, instead of closing.
+Selecting a Combobox item that triggers a slow, **suspending** state change
+leaves the popup **stuck open on screen for the entire load**, instead of
+closing.
 
 <https://github.com/user-attachments/assets/1ef00dad-cbe0-4ed7-a6ad-fc68d03d7122>
 
 ## Versions
 
-`@base-ui/react@1.5.0` · `@tanstack/react-start@1.168` (SPA mode) · `react@19.2`
+`@base-ui/react@1.5.0` · `react@19.2`
 
 ## Reproduce
 
 ```bash
-bun install && bun dev   # http://localhost:5173
+bun install && bun dev
 ```
 
 1. Open the combobox, select any fruit.
-2. The destination route has a 5s blocking loader.
-3. The popup stays frozen open for those 5s, overlapping the `Loading…` screen.
+2. Selecting suspends for 5s; `<Suspense>` shows its `Loading…` fallback.
+3. The popup stays frozen open over `Loading…` for those 5s, then disappears.
 
 Expected: the popup closes/unmounts immediately on selection.
 
 ## Why
 
-On select, the popup is closed (`open=false`) but Base UI keeps it mounted in a
-portal until its close animation finishes — the unmount runs through
+On select the popup closes (`open=false`), but Base UI keeps it portaled until
+the close animation finishes, deferring the unmount to
 `flushSync(setMounted(false))` (`useAnimationsFinished` → `useOpenChangeComplete`).
-`navigate()` wraps the transition in `startTransition`, and the blocking loader
-keeps it **suspended**. In SPA mode the whole pending boundary is client-side, so
-the source route (and its portal) stays in the suspended tree and the `flushSync`
-unmount can't commit until the loader resolves.
 
-Only reproduces in **SPA mode** (`tanstackStart({ spa: { enabled: true } })`) —
-SSR resolves the navigation server-side and the popup unmounts normally.
+If, before that deferred unmount runs, the **subtree that owns the combobox is
+torn down and replaced by a pending/fallback UI** — a React `<Suspense>` fallback
+here, or TanStack Router's `pendingComponent` in the original report — the owner
+of the popup's `mounted` state is gone, so the `flushSync` can't commit and the
+portaled popup is orphaned on screen until the boundary resolves.
+
+It's the **teardown of the source subtree** that orphans the popup, not a pending
+transition:
+
+- A plain suspending `setState` that shows a `<Suspense>` fallback **reproduces**
+  it — no router, no `startTransition` (this repro).
+- Wrapping the same update in `startTransition` **prevents** it: React keeps the
+  committed tree mounted, so the deferred `flushSync` commits and the popup closes.
+
+TanStack SPA mode hits this because `pendingMs: 0` renders the route's
+`pendingComponent` (tearing down the source route) while the blocking loader runs;
+its `startTransition` is incidental. SSR unmounts normally.
 
 ## Key files
 
-- `src/routes/index.tsx` — combobox; items navigate on select
-- `src/routes/fruit.$fruitId.tsx` — 5s blocking loader
-- `vite.config.ts` — `spa.enabled: true`
+- `src/routes/index.tsx` — combobox + `<Suspense>`; selecting suspends 5s (no router navigation)
