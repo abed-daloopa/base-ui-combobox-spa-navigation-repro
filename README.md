@@ -3,6 +3,8 @@
 Selecting a Combobox item that triggers a slow route navigation leaves the popup
 **stuck open on screen for the entire load**, instead of closing.
 
+https://github.com/user-attachments/assets/1ef00dad-cbe0-4ed7-a6ad-fc68d03d7122
+
 ## Versions
 
 `@base-ui/react@1.5.0` · `@tanstack/react-start@1.168` (SPA mode) · `react@19.2`
