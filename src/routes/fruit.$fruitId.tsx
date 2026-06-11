@@ -19,11 +19,18 @@ export const Route = createFileRoute("/fruit/$fruitId")({
   pendingMs: 0,
 })
 
+const FRUIT_EMOJI_MAP = {
+  Apple: "🍎",
+  Banana: "🍌",
+  Cherry: "🍒",
+  Mango: "🥭",
+}
+
 function FruitPage() {
   const { fruitId } = Route.useParams()
   return (
-    <div className="flex min-h-svh items-center justify-center p-6">
-      Fruit {fruitId}
+    <div className="flex min-h-svh items-center justify-center p-6 text-6xl">
+      {FRUIT_EMOJI_MAP[fruitId as keyof typeof FRUIT_EMOJI_MAP]}
     </div>
   )
 }
