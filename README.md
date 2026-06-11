@@ -3,7 +3,7 @@
 Selecting a Combobox item that triggers a slow route navigation leaves the popup
 **stuck open on screen for the entire load**, instead of closing.
 
-https://github.com/user-attachments/assets/1ef00dad-cbe0-4ed7-a6ad-fc68d03d7122
+<https://github.com/user-attachments/assets/1ef00dad-cbe0-4ed7-a6ad-fc68d03d7122>
 
 ## Versions
 
@@ -12,7 +12,7 @@ https://github.com/user-attachments/assets/1ef00dad-cbe0-4ed7-a6ad-fc68d03d7122
 ## Reproduce
 
 ```bash
-bun install && bun dev   # http://localhost:3000
+bun install && bun dev   # http://localhost:5173
 ```
 
 1. Open the combobox, select any fruit.
